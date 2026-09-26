@@ -161,7 +161,7 @@ def vorschau(motiv, oeffnung="normal", size=800, tex=None, yaw=-16.0, pitch=26.0
     zbuf = np.full((size, size), np.inf, dtype=np.float32)
     ys, xs = np.mgrid[0:size, 0:size]
     px, py = xs + 0.5, ys + 0.5
-    for uv, xyz, art in (faces if faces is not None else modell(oeffnung)):
+    for uv, xyz, art in (faces if faces is not None else netz_flaechen(oeffnung)):
         scr = [kamera(p, yaw, pitch, size=size) for p in xyz]
         (x0, y0), d0 = scr[0]; (x1, y1), d1 = scr[1]; (x2, y2), d2 = scr[2]
         det = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2)
@@ -250,32 +250,28 @@ def lage(oeffnung):
         for v in Q4:
             p, k = (u, v), _art((u, v))
             if oeffnung == "geschlossen":
-                if k == "ecke":   q = (sgn(u) * 0.62, -sgn(v) * 0.62, -0.75)
+                if k == "ecke":     q = (sgn(u) * 0.62, -sgn(v) * 0.62, -0.75)
                 elif k == "spitze": q = (0.0, 0.0, 0.75)
-                elif k == "kante": q = (sgn(u) * 0.95, 0.0, -0.05) if u in (0, 1) else (0.0, -sgn(v) * 0.95, -0.05)
-                else:              q = (0.0, 0.0, -0.25)
+                elif k == "kante":  q = (sgn(u) * 0.95, 0.0, -0.05) if u in (0, 1) else (0.0, -sgn(v) * 0.95, -0.05)
+                else:               q = (0.0, 0.0, -0.25)
             else:
                 normal = oeffnung == "normal"
                 A = (0.0, -sgn(v), 0.0) if normal else (sgn(u), 0.0, 0.0)          # Kieferrichtung
                 B = (sgn(u), 0.0, 0.0) if normal else (0.0, -sgn(v), 0.0)          # Seite (Mundwinkel)
-                if k == "ecke":     q = v_add(v_add(v_scale(A, 0.75), v_scale(B, 0.5)), (0, 0, -1.3))
+                if k == "ecke":     q = v_add(v_add(v_scale(A, 1.0), v_scale(B, 0.7)), (0, 0, -0.45))
                 elif k == "spitze": q = v_add(v_scale(A, 0.7), (0, 0, 0.6))
                 elif k == "kante":
                     an_seite = (u in (0, 1)) if normal else (v in (0, 1))           # Kante am Mundwinkel?
-                    q = B if an_seite else v_add(v_scale(A, 0.95), (0, 0, -0.45))   # Mundwinkel bzw. Kieferrücken
+                    q = B if an_seite else v_add(v_scale(A, 1.02), (0, 0, -0.1))    # Mundwinkel bzw. Kieferrücken
                 else:               q = (0.0, 0.0, -1.0)                             # Rachen: Mittelpunkte und Innenraster
             pos[p] = q
     return pos
 
 
 def _rueckseite():
-    """Füllflächen hinten (keine Papierflächen), ebenfalls über Rasterpunkte definiert"""
-    f = []
-    for cu, cv in ((0, 0), (1, 0), (0, 1), (1, 1)):
-        ku = (0.25 if cu == 0 else 0.75, cv); kv = (cu, 0.25 if cv == 0 else 0.75)
-        f.append(((cu, cv), ku, kv))
-    f += [((0, 0), (1, 0), (1, 1)), ((0, 0), (1, 1), (0, 1))]
-    return f
+    """Keine Füllflächen: der Faltmund ist hinten offen wie beim echten – dort stecken die Finger.
+    Von vorn schließt das Papier selbst alles ab."""
+    return []
 
 
 def netz_flaechen(oeffnung_a, oeffnung_b=None, t=0.0):

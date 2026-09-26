@@ -129,4 +129,9 @@ genau einer Falzlinie geteilt. `lage(zustand)` legt fest, wo jeder Papierpunkt i
 Raum liegt; die Animation interpoliert nur Punkte. Weil alle Zustände dasselbe Netz
 benutzen, knickt das Papier nur an den Falzlinien und kann nicht aufreißen.
 Parameter: `ablauf`, `size`, `fps`, `sek_wechsel`, `sek_halten`.
+Die Standbilder (`_3d.png`) kommen aus demselben Netz.
+
+Form: jede Tasche ist ein über ihre Diagonale geknicktes Eckquadrat. Beim Öffnen liegt
+die Papierecke oben-außen, die Taschenkante am Kieferrücken mittig, die Spitze vorne –
+so schauen die Augenflächen nach vorn-oben wie am echten Faltmund. Hinten ist er offen.
 Braucht `imageio` und `imageio-ffmpeg`.
