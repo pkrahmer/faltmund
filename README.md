@@ -8,6 +8,7 @@ ist ein eigenes Modul, das sagt, was in welche Zone gezeichnet wird.
 faltmund.py          Geometrie, Zonen, Seite, Rendern (SVG → PDF/PNG via cairosvg)
 motiv_frosch.py      der Faltfrosch (Zunge normal, Gruselgebiss seitlich, Fliegen unter den Klappen)
 motiv_claude.py      Claude als Faltmund: Textzeilen-Haut, Sprechblase, Klammergebiss, Sternenhimmel am Gaumen
+motiv_monstertruck.py Friedhofs-Monstertruck (eigener Entwurf): Scheinwerfer-Augen, Reifenprofil, Chromgebiss, Grabstein-Zunge
 motiv_kaktus.py      der Topfkaktus aus dem Karopapier-Tierchen, Pixel-Optik: Karoraster 52×52, Kästchen einzeln ausmalen
 motiv_schablone.py   Zonenschablone mit Beschriftung – zum Probefalten bei neuen Motiven
 vorschau3d.py        farbige 3D-Vorschau (beide Öffnungen) aus der ausgemalten Vorlage
