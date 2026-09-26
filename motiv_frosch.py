@@ -23,7 +23,7 @@ def zahn(pg, fl, sc, hw, h, d):
     """Fangzahn: Basis auf der Zahnfleischlinie (Tiefe d), Spitze zum Mundinneren"""
     b0, b1, tip = fl.L(sc - hw, d), fl.L(sc + hw, d), fl.L(sc, d + h)
     c0, c1 = fl.L(sc - hw * 0.62, d + h * 0.48), fl.L(sc + hw * 0.62, d + h * 0.48)
-    pg.path([("M", b0), ("Q", c0, tip), ("Q", c1, b1)], WHITE, close=True)
+    pg.path([("M", b0), ("Q", c0, tip), ("Q", c1, b1)], f'fill="{pg.farbe("zahn")}" stroke="#000" stroke-width="0.45" stroke-linejoin="round"', close=True)
 
 
 def gebiss(pg, fl):
@@ -50,7 +50,7 @@ def gaumen(pg, fl):
     # Zäpfchen: halbe Ellipse, flache Seite auf der Diagonale (= Kiefernaht in 3D)
     s0, rx, ry = 0.088, 0.021, 0.013
     pts = [fl.Q(s0 + rx * math.cos(t), ry * math.sin(t)) for t in (math.pi * i / 18 for i in range(19))]
-    pg.polyline(pts, 'fill="#fff" stroke="#000" stroke-width="0.4" stroke-linejoin="round"', close=True)
+    pg.polyline(pts, f'fill="{pg.farbe("zunge")}" stroke="#000" stroke-width="0.4" stroke-linejoin="round"', close=True)
 
 
 def zunge(pg, fl):
@@ -63,15 +63,15 @@ def zunge(pg, fl):
              ("Q", Q(0.172, 0.094), Q(0.205, 0.090)),
              ("Q", Q(0.238, 0.084), Q(0.262, 0.064)),
              ("Q", Q(0.292, 0.036), Q(0.300, 0.0))],
-            'fill="#fff" stroke="#000" stroke-width="0.5" stroke-linejoin="round"', close=True)
+            f'fill="{pg.farbe("zunge")}" stroke="#000" stroke-width="0.5" stroke-linejoin="round"', close=True)
     pg.path([("M", Q(0.130, 0.045)), ("Q", Q(0.172, 0.064), Q(0.215, 0.060))], THIN)   # Glanzlicht
 
 
 def auge(pg, c, mirror):
     r = 0.05
-    pg.circle(c, r, 'fill="#fff" stroke="#000" stroke-width="0.5"')
+    pg.circle(c, r, f'fill="{pg.farbe("augapfel")}" stroke="#000" stroke-width="0.5"')
     pg.polyline([add(c, (math.cos(math.radians(a)), math.sin(math.radians(a))), r * 1.12) for a in range(205, 336, 5)], LINE)
-    pg.circle(c, 0.03, 'fill="#fff" stroke="#000" stroke-width="0.4"')
+    pg.circle(c, 0.03, f'fill="{pg.farbe("iris")}" stroke="#000" stroke-width="0.4"')
     pg.ellipse(c, 0.02, 0.013, 'fill="#111"')                          # liegende Froschpupille
     pg.circle(add(c, (-0.008 if mirror else 0.008, -0.005)), 0.005, 'fill="#fff"')
 
@@ -100,6 +100,11 @@ def fliege(pg, c, scale=1.0, rot=0):
 # ---------------------------------------------------------------- Motiv
 class Frosch:
     titel = "Faltfrosch zum Ausmalen"
+    farben = {"haut": "#6db33f", "fleck": "#4f8f2c", "mund": "#c9302c", "zunge": "#f08aa4", "zahn": "#fffdf3",
+              "augapfel": "#ffffff", "iris": "#f2c94a", "rachen": "#3a0f12"}
+
+    def zonenfarbe(self, zone):
+        return "mund" if hasattr(zone, "rachen") else "haut"
     anleitung = ANLEITUNG_STANDARD + [
         "Mund normal auf: Zunge. Mund seitlich auf: Gruselgebiss! Unter den Klappen verstecken sich zwei Fliegen.",
     ]
@@ -120,7 +125,7 @@ class Frosch:
         oben = pk.ecke[1] == 0
         links = pk.ecke[0] == 0
         for x, y, r in (self.FLECKEN_OBEN if oben else self.FLECKEN_UNTEN):
-            pg.circle(pk.at(x, y), r, 'fill="#fff" stroke="#000" stroke-width="0.35"')
+            pg.circle(pk.at(x, y), r, f'fill="{pg.farbe("fleck")}" stroke="#000" stroke-width="0.35"')
         if oben:
             # Augen auf der Dach-Hälfte (an der oberen Papierkante), Nasenloch an der Schnauzenspitze
             h = pk.halves["oben"]
@@ -137,5 +142,5 @@ class Frosch:
 if __name__ == "__main__":
     import sys
     out = sys.argv[1] if len(sys.argv) > 1 else "faltfrosch"
-    save(render(Frosch()), out)
+    save(render(Frosch()), out, motiv=Frosch())
     print("geschrieben:", out + ".svg/.pdf/.png")

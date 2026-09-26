@@ -22,10 +22,18 @@ def cell_center(i, j):
     return ((i + 0.5) * C, (j + 0.5) * C)
 
 
+FARBEN = {"g": "#57a05a", "b": "#b0663f", "r": "#c9302c", "p": "#e0537a", "h": "#9fd4ea", "w": "#ffffff", "#": "#22301f"}
+
+
 def pixel(pg, i, j, code):
-    """Ein Kästchen zeichnen. code: '#' = schwarz gefüllt, 'w' = weiß (leer), sonst Farbkürzel in Grau."""
+    """Ein Kästchen zeichnen. code: '#' = schwarz gefüllt, 'w' = weiß (leer), sonst Farbkürzel in Grau.
+    Im Farbmodus wird das Kästchen in der Code-Farbe gefüllt (Vorschau)."""
     x, y = i * C, j * C
-    pg.polyline([(x, y), (x + C, y), (x + C, y + C), (x, y + C)], CELL_BLACK if code == "#" else CELL, close=True)
+    quad = [(x, y), (x + C, y), (x + C, y + C), (x, y + C)]
+    if pg.farbig:
+        pg.polyline(quad, f'fill="{FARBEN[code]}" stroke="{FARBEN[code]}" stroke-width="0.05"', close=True)
+        return
+    pg.polyline(quad, CELL_BLACK if code == "#" else CELL, close=True)
     if code not in ("w", "#"):
         cx, cy = cell_center(i, j)
         pg.text((cx, cy + 0.0035), code, size=2.1, style=LETTER, anchor="middle")
@@ -47,6 +55,7 @@ AUGE = {(8, 3): "#", (9, 3): "w", (8, 4): "#", (9, 4): "#"}                     
 
 class Kaktus:
     titel = "Topfkaktus zum Ausmalen – Pixel"
+    farben = {"haut": FARBEN["g"], "rachen": FARBEN["#"]}      # für Füllflächen der 3D-Vorschau
     anleitung = ANLEITUNG_STANDARD + [
         "Farbkürzel in den Kästchen: g grün, b braun, r rot, p rosa, h hellblau. Leere Kästchen bleiben weiß, schwarze schwarz.",
         "Mund normal auf: Zunge. Mund seitlich auf: Pixelgebiss! Unter den Klappen: ein Schluck Wasser.",
@@ -118,5 +127,5 @@ class Kaktus:
 
 
 if __name__ == "__main__":
-    save(render(Kaktus()), "kaktus")
+    save(render(Kaktus()), "kaktus", motiv=Kaktus())
     print("geschrieben: kaktus.svg/.pdf/.png")

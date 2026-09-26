@@ -67,11 +67,17 @@ class Page:
     """A4-Seite mit einem Quadrat; sammelt SVG-Elemente."""
     W, H = 210.0, 297.0
 
-    def __init__(self, size=190.0, x0=10.0, y0=18.0):
+    def __init__(self, size=190.0, x0=10.0, y0=18.0, farbig=False, palette=None):
         self.S, self.X0, self.Y0 = size, x0, y0
         self.out, self.defs = [], []
         self._clip = 0
         self.mm = lambda v: v * self.S
+        self.farbig = farbig                 # True: ausgemalte Textur statt Ausmalvorlage
+        self.palette = palette or {}
+
+    def farbe(self, key, sonst="#fff"):
+        """Füllfarbe im Farbmodus (aus der Motiv-Palette), sonst der Vorlagen-Wert (meist weiß)."""
+        return self.palette.get(key, sonst) if self.farbig else sonst
 
     # Papier-Einheiten -> mm
     def P(self, u, v=None):
@@ -304,32 +310,44 @@ class Layout:
 
 
 # ---------------------------------------------------------------- Rendern
-def render(motiv, page=None):
+def render(motiv, page=None, farbig=False):
     """motiv: Objekt mit
          titel: str
          anleitung: Liste von Zeilen (ohne Nummer)
          pocket(page, pocket)            – Eckquadrat außen
          flap(page, flap)                – Mundinneres (wird geclippt aufgerufen)
          secret(page, secret) (optional) – unter der Klappe
-       Rahmen, Falzlinien, Umrisse, Hinweistexte und Anleitung übernimmt render()."""
-    pg = page or Page()
+         farben (optional)               – Palette {key: "#rrggbb"} für den Farbmodus
+         zonenfarbe(zone) (optional)     – Palettenschlüssel der Grundfarbe einer Zone (Pocket/Flap)
+       Rahmen, Falzlinien, Umrisse, Hinweistexte und Anleitung übernimmt render().
+       farbig=True rendert das ausgemalte Quadrat als Textur (für die 3D-Vorschau)."""
+    pg = page or Page(farbig=farbig, palette=getattr(motiv, "farben", {}))
     lay = Layout()
-    for a, b in lay.fold_lines():
-        pg.line(a, b, FOLD)
+    if not pg.farbig:
+        for a, b in lay.fold_lines():
+            pg.line(a, b, FOLD)
+
+    def grund(zone):
+        if pg.farbig and hasattr(motiv, "zonenfarbe"):
+            key = motiv.zonenfarbe(zone)
+            if key: pg.polyline(zone.poly, f'fill="{pg.palette.get(key, "#fff")}" stroke="none"', close=True)
+
     # Mundinneres
     for fl in lay.flaps:
         cid = pg.clip(fl.poly)
         pg.group(cid)
+        grund(fl)
         motiv.flap(pg, fl)
         pg.end()
-        pg.polyline(fl.poly, LINE, close=True)
+        if not pg.farbig: pg.polyline(fl.poly, LINE, close=True)
     # Taschen
     for pk in lay.pockets:
         cid = pg.clip(pk.poly)
         pg.group(cid)
+        grund(pk)
         motiv.pocket(pg, pk)
         pg.end()
-        pg.polyline(pk.poly, LINE, close=True)
+        if not pg.farbig: pg.polyline(pk.poly, LINE, close=True)
     # Geheimes unter den Klappen
     if hasattr(motiv, "secret"):
         for sc in lay.secrets:
@@ -337,6 +355,8 @@ def render(motiv, page=None):
             pg.group(cid)
             motiv.secret(pg, sc)
             pg.end()
+    if pg.farbig:
+        return pg.svg()
     # nie sichtbare Dreiecke
     for tri, rot in zip(lay.hidden, (0, 90, 0, -90)):
         c = ((tri[0][0] + tri[1][0] + tri[2][0]) / 3, (tri[0][1] + tri[1][1] + tri[2][1]) / 3)
@@ -356,6 +376,17 @@ def render(motiv, page=None):
     return pg.svg()
 
 
+def textur(motiv, px=1400):
+    """Das ausgemalte Quadrat als PIL-Bild (px × px) – Grundlage der 3D-Vorschau."""
+    import io, cairosvg
+    from PIL import Image
+    pg = Page(size=100.0, x0=0.0, y0=0.0, farbig=True, palette=getattr(motiv, "farben", {}))
+    pg.W = pg.H = 100.0
+    svg = render(motiv, page=pg, farbig=True)
+    png = cairosvg.svg2png(bytestring=svg.encode(), output_width=px, output_height=px)
+    return Image.open(io.BytesIO(png)).convert("RGB")
+
+
 ANLEITUNG_STANDARD = [
     "Erst ausmalen, dann entlang der dicken Linie ausschneiden. Gestrichelte Linien sind Falzlinien.",
     "Bedruckte Seite nach UNTEN legen. Beide Diagonalen vorfalzen, dann alle vier Ecken zur Mitte falten.",
@@ -364,8 +395,9 @@ ANLEITUNG_STANDARD = [
 ]
 
 
-def save(svg, basename):
-    """schreibt <basename>.svg, .pdf und eine Vorschau .png"""
+def save(svg, basename, motiv=None):
+    """schreibt <basename>.svg, .pdf, eine Vorschau .png und – wenn motiv übergeben wird –
+    <basename>_3d.png mit der farbigen 3D-Vorschau beider Öffnungen"""
     open(basename + ".svg", "w").write(svg)
     try:
         import cairosvg
@@ -373,3 +405,7 @@ def save(svg, basename):
         cairosvg.svg2png(bytestring=svg.encode(), write_to=basename + ".png", output_width=1240)
     except ImportError:
         print("cairosvg fehlt (pip install cairosvg) – nur SVG geschrieben")
+        return
+    if motiv is not None:
+        from vorschau3d import vorschau_beide
+        vorschau_beide(motiv).save(basename + "_3d.png")

@@ -9,13 +9,14 @@ faltmund.py          Geometrie, Zonen, Seite, Rendern (SVG → PDF/PNG via cairo
 motiv_frosch.py      der Faltfrosch (Zunge normal, Gruselgebiss seitlich, Fliegen unter den Klappen)
 motiv_kaktus.py      der Topfkaktus aus dem Karopapier-Tierchen, Pixel-Optik: Karoraster 52×52, Kästchen einzeln ausmalen
 motiv_schablone.py   Zonenschablone mit Beschriftung – zum Probefalten bei neuen Motiven
+vorschau3d.py        farbige 3D-Vorschau (beide Öffnungen) aus der ausgemalten Vorlage
 ```
 
 ## Benutzen
 
 ```
 pip install cairosvg
-python3 motiv_frosch.py            # → faltfrosch.svg / .pdf / .png
+python3 motiv_frosch.py            # → faltfrosch.svg / .pdf / .png / _3d.png
 python3 motiv_kaktus.py            # → kaktus.svg / .pdf / .png
 python3 motiv_schablone.py         # → schablone.svg / .pdf / .png
 ```
@@ -94,3 +95,23 @@ Treppen statt zu angeschnittenen Kästchen. `code_fn(i, j)` liefert `.` (Zonenfa
 In den Klappen rechnet man in `(s, d)` – Kästchen entlang der Lippe und Tiefe –,
 der Rachen liegt bei `(0, 13)`, Kästchen mit `s + d == 12` liegen an der Diagonale.
 `faltmund.inside(p, poly)` ist der Punkt-im-Polygon-Test dafür.
+
+## 3D-Vorschau in Farbe
+
+`save(svg, name, motiv=motiv)` schreibt zusätzlich `<name>_3d.png`: das Motiv als
+aufgezogener Faltmund, links „normal auf", rechts „seitlich auf". Dafür braucht
+ein Motiv einen Farbmodus:
+
+* `farben` – Palette `{schlüssel: "#rrggbb"}`; `haut` und `mund` werden auch für
+  die untexturierten Füllflächen des Kopfes benutzt.
+* `zonenfarbe(zone)` – Palettenschlüssel der Grundfarbe einer Zone (Tasche/Klappe).
+* In den Zeichenfunktionen `pg.farbe("zunge")` statt `#fff` als Füllung: liefert
+  im Farbmodus die Palettenfarbe, in der Ausmalvorlage Weiß. `pg.farbig` sagt,
+  welcher Modus gerade läuft (das Pixel-Motiv füllt damit die Kästchen).
+
+`faltmund.textur(motiv)` rendert das ausgemalte Quadrat als Bild, `vorschau3d.modell()`
+ordnet die Zonen als starre Dreiecke an (Rachen hinten, Mundwinkel auf der
+Scharnierachse, Kieferspitzen vorne; jeder Kiefer ein Dach aus den beiden Taschen-
+hälften), `vorschau3d.vorschau()` rastert das mit Tiefenpuffer und einfacher
+Schattierung. Es ist ein Anschauungsmodell – die echte Faltung mit Fingern in den
+Taschen ist weicher –, aber welche Zone wo und in welcher Öffnung zu sehen ist, stimmt.
