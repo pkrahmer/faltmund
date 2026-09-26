@@ -7,6 +7,7 @@ ist ein eigenes Modul, das sagt, was in welche Zone gezeichnet wird.
 ```
 faltmund.py          Geometrie, Zonen, Seite, Rendern (SVG → PDF/PNG via cairosvg)
 motiv_frosch.py      der Faltfrosch (Zunge normal, Gruselgebiss seitlich, Fliegen unter den Klappen)
+motiv_kaktus.py      der Topfkaktus aus dem Karopapier-Tierchen, Pixel-Optik: Karoraster 52×52, Kästchen einzeln ausmalen
 motiv_schablone.py   Zonenschablone mit Beschriftung – zum Probefalten bei neuen Motiven
 ```
 
@@ -15,6 +16,7 @@ motiv_schablone.py   Zonenschablone mit Beschriftung – zum Probefalten bei neu
 ```
 pip install cairosvg
 python3 motiv_frosch.py            # → faltfrosch.svg / .pdf / .png
+python3 motiv_kaktus.py            # → kaktus.svg / .pdf / .png
 python3 motiv_schablone.py         # → schablone.svg / .pdf / .png
 ```
 
@@ -81,3 +83,14 @@ der Papierecke aus auf alle vier Ecken.
 
 Die Zonenschablone (`motiv_schablone.py`) druckt all das beschriftet aus –
 einmal falten, und man sieht, welche Zone wo landet.
+
+## Pixel-Motive
+
+`motiv_kaktus.py` zeigt das zweite Muster: statt Linien ein Karoraster
+(`N = 52` Kästchen je Blattkante, 13 je Eckquadrat). `raster(pg, poly, code_fn)`
+zeichnet jedes Kästchen, dessen Mitte in der Zone liegt – Ränder werden so zu
+Treppen statt zu angeschnittenen Kästchen. `code_fn(i, j)` liefert `.` (Zonenfarbe),
+`#` (schwarz) oder einen Buchstaben, der als Farbcode ins Kästchen kommt.
+In den Klappen rechnet man in `(s, d)` – Kästchen entlang der Lippe und Tiefe –,
+der Rachen liegt bei `(0, 13)`, Kästchen mit `s + d == 12` liegen an der Diagonale.
+`faltmund.inside(p, poly)` ist der Punkt-im-Polygon-Test dafür.

@@ -49,6 +49,17 @@ def incenter(a, b, c):
     la, lb, lc = math.dist(b, c), math.dist(a, c), math.dist(a, b)
     s = la + lb + lc
     return ((la * a[0] + lb * b[0] + lc * c[0]) / s, (la * a[1] + lb * b[1] + lc * c[1]) / s)
+def inside(p, poly):
+    """liegt p im konvexen Polygon (Ecken im oder gegen Uhrzeigersinn)?"""
+    sgn = 0
+    for i in range(len(poly)):
+        a, b = poly[i], poly[(i + 1) % len(poly)]
+        cr = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+        if abs(cr) < 1e-12: continue
+        s = 1 if cr > 0 else -1
+        if sgn == 0: sgn = s
+        elif s != sgn: return False
+    return True
 
 
 # ---------------------------------------------------------------- Seite
