@@ -155,14 +155,62 @@ def knochen(pg, c):
                 'fill="#fff" stroke="none"', close=True)
 
 
+def mond(pg, c, r=0.02):
+    pg.circle(c, r, f'fill="{pg.farbe("licht")}" stroke="#000" stroke-width="0.45"')
+    pg.circle((c[0] + r * 0.55, c[1] - r * 0.25), r * 0.85, f'fill="{pg.farbe("haut")}" stroke="none"')
+    pts = [(c[0] + r * 0.55 + math.cos(math.radians(a)) * r * 0.85, c[1] - r * 0.25 + math.sin(math.radians(a)) * r * 0.85) for a in range(95, 266, 10)]
+    pg.polyline(pts, 'stroke="#000" stroke-width="0.45" fill="none"')
+
+
+def zaun(pg, pk, y0=0.205, y1=0.238, x0=0.012, x1=0.2):
+    """schiefer Friedhofszaun: Latten mit Spitzen, zwei Querlatten"""
+    x, i = x0, 0
+    while x < x1:
+        kipp = (0.004, -0.003, 0.002, -0.004, 0.003)[i % 5]
+        top = y0 + (0.004 if i % 2 else 0.0)
+        pg.polyline([pk.at(x, y1), pk.at(x + kipp, top + 0.006), pk.at(x + kipp + 0.004, top), pk.at(x + kipp + 0.008, top + 0.006), pk.at(x + 0.008, y1)],
+                    f'fill="{pg.farbe("zaun")}" stroke="#000" stroke-width="0.4" stroke-linejoin="round"', close=True)
+        x += 0.02; i += 1
+    for y in (y0 + 0.012, y0 + 0.024):
+        pg.line(pk.at(x0 - 0.004, y), pk.at(x1 + 0.002, y + 0.003), 'stroke="#000" stroke-width="0.6"')
+
+
+def hand(pg, c):
+    """Hand, die aus dem Boden greift"""
+    x, y = c; k = 0.01
+    pg.path([("M", (x - k * 0.7, y)), ("L", (x - k * 0.8, y - k * 1.2)), ("L", (x - k * 1.4, y - k * 2.2)), ("L", (x - k * 1.0, y - k * 2.4)),
+             ("L", (x - k * 0.5, y - k * 1.7)), ("L", (x - k * 0.6, y - k * 3.0)), ("L", (x - k * 0.2, y - k * 3.1)), ("L", (x - k * 0.1, y - k * 1.9)),
+             ("L", (x + k * 0.1, y - k * 3.3)), ("L", (x + k * 0.5, y - k * 3.2)), ("L", (x + k * 0.4, y - k * 1.8)),
+             ("L", (x + k * 0.8, y - k * 2.9)), ("L", (x + k * 1.2, y - k * 2.7)), ("L", (x + k * 0.8, y - k * 1.2)), ("L", (x + k * 0.7, y))],
+            f'fill="{pg.farbe("hand")}" stroke="#000" stroke-width="0.4" stroke-linejoin="round"', close=True)
+    pg.path([("M", (x - k * 1.4, y + k * 0.2)), ("Q", (x, y - k * 0.6), (x + k * 1.4, y + k * 0.2))], f'fill="{pg.farbe("erde")}" stroke="#000" stroke-width="0.4"', close=True)
+
+
+def namensschild(pg, pk):
+    """Feld für Truck-Namen und Startnummer, zum Selbstbeschriften"""
+    a, b = pk.at(0.014, 0.124), pk.at(0.118, 0.162)
+    x0, x1 = sorted((a[0], b[0])); y0, y1 = sorted((a[1], b[1]))
+    pg.polyline([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], 'fill="#fff" stroke="#000" stroke-width="0.6"', close=True)
+    pg.polyline([(x0 + 0.003, y0 + 0.003), (x1 - 0.003, y0 + 0.003), (x1 - 0.003, y1 - 0.003), (x0 + 0.003, y1 - 0.003)], THIN, close=True)
+    if not pg.farbig:
+        pg.text(((x0 + x1) / 2, y1 - 0.006), "Name", size=2.2, style='fill="#aaa"', anchor="middle")
+    c = pk.at(0.034, 0.094)
+    pg.circle(c, 0.024, 'fill="#fff" stroke="#000" stroke-width="0.6"')
+    pg.circle(c, 0.0205, THIN)
+    if not pg.farbig:
+        pg.text((c[0], c[1] + 0.017), "Nr.", size=2.2, style='fill="#aaa"', anchor="middle")
+    else:
+        pg.text((c[0], c[1] + 0.012), "7", size=9, style='fill="#111" font-weight="bold"', anchor="middle")
+
+
 # ---------------------------------------------------------------- Motiv
 class Monstertruck:
-    titel = "Friedhofs-Monstertruck zum Ausmalen"
+    titel = "Konstantins Monstertruck"
     anleitung = ANLEITUNG_STANDARD + [
-        "Mund normal auf: Grabstein-Zunge und Auspuff. Mund seitlich auf: Chromgebiss! Unter den Klappen: Gespenst und Knochen.",
+        "Name und Startnummer auf die Tür schreiben! Mund normal auf: Grabstein-Zunge und Auspuff. Mund seitlich auf: Chromgebiss! Unter den Klappen: Gespenst und Knochen.",
     ]
     farben = {"haut": "#5a2d82", "flamme": "#ff8c1a", "chrom": "#dfe3e8", "licht": "#ffe66d", "gluehfaden": "#ffffff",
-              "mund": "#b8322b", "rachen": "#1a0f1f", "stein": "#9a9a9a", "stollen": "#2b2b2b", "zahn": "#dfe3e8"}
+              "mund": "#b8322b", "rachen": "#1a0f1f", "stein": "#9a9a9a", "stollen": "#2b2b2b", "zahn": "#dfe3e8", "zaun": "#6b5a4a", "hand": "#a7d676", "erde": "#5b3a22"}
 
     def zonenfarbe(self, zone):
         if hasattr(zone, "rachen"): return "mund"
@@ -182,17 +230,25 @@ class Monstertruck:
         if not oben:
             reifen(pg, pk)
             return
-        # Flammen aus der Papierecke (Hinterkopf) entlang der Diagonale nach vorne
-        for (bx, by, sx, sy, br) in ((0.015, 0.015, 0.16, 0.15, 0.018), (0.015, 0.05, 0.075, 0.17, 0.012), (0.05, 0.015, 0.17, 0.065, 0.011)):
+        # Flammen aus der Papierecke entlang der Diagonale
+        for (bx, by, sx, sy, br) in ((0.012, 0.012, 0.115, 0.105, 0.013),):
             flamme(pg, pk.at(bx, by), pk.at(sx, sy), br)
         # Nieten entlang der Lippenkanten
+        for t in (0.03, 0.09):
+            niete(pg, pk.at(0.24, t))
         for t in (0.03, 0.09, 0.15, 0.21):
-            niete(pg, pk.at(0.24, t)); niete(pg, pk.at(t, 0.24))
-        # Friedhof auf der Seitenhälfte, Scheinwerfer auf der Dachhälfte
-        grabstein(pg, pk.at(0.05, 0.19)); grabstein(pg, pk.at(0.1, 0.215), w=0.022, h=0.03, kreuz=False)
-        fledermaus(pg, pk.at(0.17, 0.2)); fledermaus(pg, pk.at(0.05, 0.12), w=0.024)
+            niete(pg, pk.at(t, 0.244))
+        # Dachhälfte: Scheinwerfer, Vollmond, Gespenst
         h = pk.halves["oben"]
         scheinwerfer(pg, h.incenter, mirror=not links)
+        mond(pg, pk.at(0.09, 0.03))
+        gespenst(pg, pk.at(0.212, 0.172))
+        # Seitenhälfte = Tür: Namensschild, Startnummer, Friedhof mit Zaun und Hand
+        namensschild(pg, pk)
+        grabstein(pg, pk.at(0.155, 0.2), w=0.024, h=0.032)
+        zaun(pg, pk)
+        hand(pg, pk.at(0.085, 0.206))
+        fledermaus(pg, pk.at(0.155, 0.152), w=0.026)
 
     def secret(self, pg, sc):
         if sc.flap.name == "B2":
