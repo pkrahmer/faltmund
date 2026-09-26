@@ -148,7 +148,7 @@ def licht_faktor(tri, yaw=-28.0, pitch=18.0):
 
 
 # ------------------------------------------------------------- Rendern (Z-Buffer)
-def vorschau(motiv, oeffnung="normal", size=800, tex=None, yaw=-16.0, pitch=26.0):
+def vorschau(motiv, oeffnung="normal", size=800, tex=None, yaw=-16.0, pitch=26.0, faces=None):
     """Rastert alle Flächen mit Tiefenpuffer: pro Pixel gewinnt die nächste Fläche.
     Texturkoordinaten werden baryzentrisch interpoliert (affin – für die kleinen Dreiecke ausreichend)."""
     import numpy as np
@@ -156,12 +156,12 @@ def vorschau(motiv, oeffnung="normal", size=800, tex=None, yaw=-16.0, pitch=26.0
     T = np.asarray(tex, dtype=np.float32)
     TW = T.shape[0]
     farben = getattr(motiv, "farben", {})
-    fuell = {"haut": farben.get("haut", "#88aabb"), "mund": farben.get("mund", "#c9302c")}
+    fuell = {"haut": farben.get("haut", "#88aabb"), "mund": farben.get("mund", "#c9302c"), "kern": farben.get("rachen", "#1a0f1f")}
     img = np.full((size, size, 3), 255, dtype=np.float32)
     zbuf = np.full((size, size), np.inf, dtype=np.float32)
     ys, xs = np.mgrid[0:size, 0:size]
     px, py = xs + 0.5, ys + 0.5
-    for uv, xyz, art in modell(oeffnung):
+    for uv, xyz, art in (faces if faces is not None else modell(oeffnung)):
         scr = [kamera(p, yaw, pitch, size=size) for p in xyz]
         (x0, y0), d0 = scr[0]; (x1, y1), d1 = scr[1]; (x2, y2), d2 = scr[2]
         det = (y1 - y2) * (x0 - x2) + (x2 - x1) * (y0 - y2)
@@ -215,3 +215,74 @@ def vorschau_alle(motiv, size=800, ansichten=ANSICHTEN):
 
 
 vorschau_beide = vorschau_alle          # alter Name
+
+
+# ------------------------------------------------------------- Animation
+def _key(uv):
+    return tuple(sorted((round(u, 4), round(v, 4)) for u, v in uv))
+
+
+def _zustand(oeffnung):
+    """alle texturierten Flächen eines Zustands, auch die gerade versteckten Klappen.
+    Rückgabe {schlüssel: (uv, xyz, art)} – gleiche Schlüssel in jedem Zustand."""
+    lay = Layout()
+    faces = {}
+    fuell = []
+    vpos = {}                                             # Papierpunkt -> 3D-Position (aus den sichtbaren Flächen)
+    for uv, xyz, art in modell(oeffnung):
+        if uv is None:
+            fuell.append((uv, xyz, art)); continue
+        faces[_key(uv)] = (uv, xyz, art)
+        for p, q in zip(uv, xyz):
+            vpos.setdefault((round(p[0], 4), round(p[1], 4)), q)
+    # versteckte Klappen: zugeklappt nach innen – Mundwinkel und Spitze an ihrer Taschenkante,
+    # der Rachen etwas nach innen hinter die Kante gezogen
+    for fl in lay.flaps:
+        k = _key(fl.poly)
+        if k in faces: continue
+        w = vpos[(round(fl.winkel[0], 4), round(fl.winkel[1], 4))]
+        t = vpos[(round(fl.spitze[0], 4), round(fl.spitze[1], 4))]
+        r = v_scale(v_add(w, t), 0.5)                    # zugeklappt = Fläche null, liegt auf der Kante
+        faces[k] = (fl.poly, [w, t, r], "innen")
+    return faces, fuell
+
+
+def _mischen(z0, z1, t):
+    f0, _ = z0; f1, _ = z1
+    out = []
+    for k, (uv, xyz0, art) in f0.items():
+        xyz1 = f1[k][1]
+        out.append((uv, [tuple(a + (b - a) * t for a, b in zip(p0, p1)) for p0, p1 in zip(xyz0, xyz1)], art))
+    # Füllflächen: vom Zustand nehmen, der gerade näher ist (sie liegen hinten und verdecken nur Lücken)
+    out += (z0 if t < 0.5 else z1)[1]
+    if 0 < t < 1:                                       # Kern nur während des Umklappens, am größten in der Mitte
+        g = math.sin(math.pi * t)
+        out += [(None, [v_add(v_scale(v_sub(p, (0, 0, -0.45)), g), (0, 0, -0.45)) for p in tri], art) for _, tri, art in KERN]
+    return out
+
+
+# dunkler Kern im Kopf: wo sich beim Umklappen kurz Lücken öffnen, sieht man ins Mundinnere statt durch den Kopf
+_kp = [(0.5, 0, -0.45), (-0.5, 0, -0.45), (0, 0.5, -0.45), (0, -0.5, -0.45), (0, 0, 0.05), (0, 0, -0.95)]
+KERN = [(None, [_kp[a], _kp[b], _kp[c]], "kern") for a, b, c in
+        ((0, 2, 4), (2, 1, 4), (1, 3, 4), (3, 0, 4), (0, 2, 5), (2, 1, 5), (1, 3, 5), (3, 0, 5))]
+
+
+def clip(motiv, pfad, ablauf=("geschlossen", "normal", "geschlossen", "seitlich", "geschlossen"),
+         size=480, schritte=14, halten=8, ms=55, yaw=-16.0, pitch=26.0):
+    """kurzer Clip als animiertes GIF: Übergänge zwischen den Zuständen in `ablauf`,
+    mit Pause in jedem Zustand. Standard: zu, normal auf, zu, seitlich auf, zu."""
+    tex = textur(motiv)
+    zust = {oe: _zustand(oe) for oe in set(ablauf)}
+    frames = []
+    def bild(faces):
+        return vorschau(motiv, size=size, tex=tex, yaw=yaw, pitch=pitch, faces=faces).convert("P", palette=Image.ADAPTIVE, colors=128)
+    for a, b in zip(ablauf, ablauf[1:]):
+        halt = bild(_mischen(zust[a], zust[a], 0.0))
+        frames += [halt] * halten
+        for i in range(1, schritte + 1):
+            t = i / schritte
+            t = t * t * (3 - 2 * t)                          # sanft an- und auslaufen
+            frames.append(bild(_mischen(zust[a], zust[b], t)))
+    frames += [bild(_mischen(zust[ablauf[-1]], zust[ablauf[-1]], 0.0))] * halten
+    frames[0].save(pfad, save_all=True, append_images=frames[1:], duration=ms, loop=0, disposal=2)
+    return pfad

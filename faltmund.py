@@ -396,7 +396,7 @@ ANLEITUNG_STANDARD = [
 ]
 
 
-def save(svg, basename, motiv=None):
+def save(svg, basename, motiv=None, clip=False):
     """schreibt <basename>.svg, .pdf, eine Vorschau .png und – wenn motiv übergeben wird –
     <basename>_3d.png mit der farbigen 3D-Vorschau (zu, normal auf, seitlich auf)"""
     open(basename + ".svg", "w").write(svg)
@@ -410,3 +410,6 @@ def save(svg, basename, motiv=None):
     if motiv is not None:
         from vorschau3d import vorschau_alle
         vorschau_alle(motiv).save(basename + "_3d.png")
+        if clip:
+            from vorschau3d import clip as _clip
+            _clip(motiv, basename + "_clip.gif")

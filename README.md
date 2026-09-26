@@ -117,3 +117,12 @@ Scharnierachse, Kieferspitzen vorne; jeder Kiefer ein Dach aus den beiden Tasche
 hälften), `vorschau3d.vorschau()` rastert das mit Tiefenpuffer und einfacher
 Schattierung. Es ist ein Anschauungsmodell – die echte Faltung mit Fingern in den
 Taschen ist weicher –, aber welche Zone wo und in welcher Öffnung zu sehen ist, stimmt.
+
+### Clip
+
+`vorschau3d.clip(motiv, "name_clip.gif")` – oder `save(..., motiv=m, clip=True)` –
+macht ein animiertes GIF: zu → normal auf → zu → seitlich auf → zu, mit kurzer Pause
+in jedem Zustand. Die Zwischenbilder werden zwischen den Zuständen interpoliert;
+Klappen, die in einem Zustand versteckt sind, liegen dort als Fläche null auf ihrer
+Kante und klappen beim Öffnen heraus. Ablauf, Größe, Tempo: Parameter `ablauf`,
+`size`, `schritte`, `halten`, `ms`.
