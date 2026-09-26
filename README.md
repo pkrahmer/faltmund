@@ -99,7 +99,7 @@ der Rachen liegt bei `(0, 13)`, Kästchen mit `s + d == 12` liegen an der Diagon
 ## 3D-Vorschau in Farbe
 
 `save(svg, name, motiv=motiv)` schreibt zusätzlich `<name>_3d.png`: das Motiv als
-aufgezogener Faltmund, links „normal auf", rechts „seitlich auf". Dafür braucht
+Faltmund in drei Ansichten: „zu", „normal auf", „seitlich auf". Dafür braucht
 ein Motiv einen Farbmodus:
 
 * `farben` – Palette `{schlüssel: "#rrggbb"}`; `haut` und `mund` werden auch für

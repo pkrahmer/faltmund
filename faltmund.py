@@ -397,7 +397,7 @@ ANLEITUNG_STANDARD = [
 
 def save(svg, basename, motiv=None):
     """schreibt <basename>.svg, .pdf, eine Vorschau .png und – wenn motiv übergeben wird –
-    <basename>_3d.png mit der farbigen 3D-Vorschau beider Öffnungen"""
+    <basename>_3d.png mit der farbigen 3D-Vorschau (zu, normal auf, seitlich auf)"""
     open(basename + ".svg", "w").write(svg)
     try:
         import cairosvg
@@ -407,5 +407,5 @@ def save(svg, basename, motiv=None):
         print("cairosvg fehlt (pip install cairosvg) – nur SVG geschrieben")
         return
     if motiv is not None:
-        from vorschau3d import vorschau_beide
-        vorschau_beide(motiv).save(basename + "_3d.png")
+        from vorschau3d import vorschau_alle
+        vorschau_alle(motiv).save(basename + "_3d.png")

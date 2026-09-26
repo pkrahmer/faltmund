@@ -44,6 +44,8 @@ def modell(oeffnung):
       R = seitlicher Firstpunkt. Der Kiefer ist ein Dach mit First H–T: die beiden
       Taschenhälften an den Lippen laufen zu den Mundwinkeln, die anderen beiden zu R."""
     lay = Layout()
+    if oeffnung == "geschlossen":
+        return _modell_zu(lay)
     C = (0.0, 0.0, -1.0)                                   # Rachen
     normal = oeffnung == "normal"
 
@@ -81,6 +83,34 @@ def modell(oeffnung):
     hN, hS = (Hf((0, 1, 0)), Hf((0, -1, 0))) if normal else (Hf((1, 0, 0)), Hf((-1, 0, 0)))
     for k in ([(-1, 0, 0), (1, 0, 0)] if normal else [(0, -1, 0), (0, 1, 0)]):
         faces.append((None, [hN, hS, k], "haut"))
+    return faces
+
+
+def _modell_zu(lay):
+    """Mund zu: alle vier Kieferspitzen treffen sich vorne in T, die Klappen liegen
+    innen flach. Sichtbar sind nur die vier Taschen, jede als Doppelfläche vom
+    Hinterkopf-Eck H zur Spitze; ihre Kantenpunkte (Mundwinkel) treffen sich mit
+    der Nachbartasche oben, unten, links und rechts."""
+    T = (0.0, 0.0, 0.75)
+    M = 0.95
+
+    def mitte(p):
+        if p[0] in (0, 1):                                  # linke/rechte Papierkante -> links/rechts
+            return (sgn(p[0]) * M, 0.0, -0.05)
+        return (0.0, -sgn(p[1]) * M, -0.05)                 # obere/untere Papierkante -> oben/unten
+
+    def hinten(p):
+        return (sgn(p[0]) * 0.62, -sgn(p[1]) * 0.62, -0.75)
+
+    faces = []
+    for pk in lay.pockets:
+        h = hinten(pk.hinterkopf)
+        ms = []
+        for hf in pk.halves.values():
+            m = mitte(hf.mitte)
+            ms.append(m)
+            faces.append(([hf.ecke, hf.mitte, hf.spitze], [h, m, T], "aussen"))
+        faces.append((None, [h, ms[0], ms[1]], "haut"))     # Rückseite
     return faces
 
 
@@ -170,13 +200,19 @@ def vorschau(motiv, oeffnung="normal", size=800, tex=None, yaw=-16.0, pitch=26.0
     return Image.fromarray(img.astype(np.uint8))
 
 
-def vorschau_beide(motiv, size=800):
+ANSICHTEN = [("geschlossen", "Mund zu"), ("normal", "Mund normal auf"), ("seitlich", "Mund seitlich auf")]
+
+
+def vorschau_alle(motiv, size=800, ansichten=ANSICHTEN):
+    """alle Ansichten nebeneinander (Standard: zu, normal auf, seitlich auf)"""
     tex = textur(motiv)
-    a = vorschau(motiv, "normal", size, tex)
-    b = vorschau(motiv, "seitlich", size, tex)
-    out = Image.new("RGB", (2 * size + 40, size + 60), (255, 255, 255))
-    out.paste(a, (0, 40)); out.paste(b, (size + 40, 40))
+    out = Image.new("RGB", (len(ansichten) * (size + 40) - 40, size + 60), (255, 255, 255))
     d = ImageDraw.Draw(out)
-    d.text((size // 2 - 60, 12), "Mund normal auf", fill=(60, 60, 60))
-    d.text((size + 40 + size // 2 - 60, 12), "Mund seitlich auf", fill=(60, 60, 60))
+    for i, (oe, titel) in enumerate(ansichten):
+        x = i * (size + 40)
+        out.paste(vorschau(motiv, oe, size, tex), (x, 40))
+        d.text((x + size // 2 - 60, 12), titel, fill=(60, 60, 60))
     return out
+
+
+vorschau_beide = vorschau_alle          # alter Name
