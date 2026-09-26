@@ -182,5 +182,5 @@ class Claude:
 
 
 if __name__ == "__main__":
-    save(render(Claude()), "claude", motiv=Claude())
+    save(render(Claude()), "claude", motiv=Claude(), clip=True)
     print("geschrieben: claude.svg/.pdf/.png/_3d.png")

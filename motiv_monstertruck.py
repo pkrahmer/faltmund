@@ -258,5 +258,5 @@ class Monstertruck:
 
 
 if __name__ == "__main__":
-    save(render(Monstertruck()), "monstertruck", motiv=Monstertruck())
+    save(render(Monstertruck()), "monstertruck", motiv=Monstertruck(), clip=True)
     print("geschrieben: monstertruck.svg/.pdf/.png/_3d.png")

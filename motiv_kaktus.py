@@ -127,5 +127,5 @@ class Kaktus:
 
 
 if __name__ == "__main__":
-    save(render(Kaktus()), "kaktus", motiv=Kaktus())
+    save(render(Kaktus()), "kaktus", motiv=Kaktus(), clip=True)
     print("geschrieben: kaktus.svg/.pdf/.png")

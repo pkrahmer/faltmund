@@ -142,5 +142,5 @@ class Frosch:
 if __name__ == "__main__":
     import sys
     out = sys.argv[1] if len(sys.argv) > 1 else "faltfrosch"
-    save(render(Frosch()), out, motiv=Frosch())
+    save(render(Frosch()), out, motiv=Frosch(), clip=True)
     print("geschrieben:", out + ".svg/.pdf/.png")
