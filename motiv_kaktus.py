@@ -3,9 +3,8 @@ Motiv: Topfkaktus in Pixel-Optik – der Kaktus aus dem Karopapier-Tierchen
 (minis/tierchen) als Faltmund. Alles liegt auf einem Karoraster von 13 Kästchen
 je Eckquadrat (52 × 52 auf dem Blatt), jedes Kästchen wird einzeln ausgemalt.
 
-Farbcode je Zone (steht auch als Legende auf dem Blatt):
-  Haut (obere Taschen) grün, Topf (untere Taschen) braun, Mundinneres rot.
-  Buchstaben: w = weiß lassen, r = rosa, h = hellblau.  Schwarze Kästchen bleiben schwarz.
+Jedes Kästchen trägt sein Farbkürzel in Grau: g grün, b braun, r rot, p rosa, h hellblau.
+Weiße Kästchen sind leer, schwarze sind gefüllt. Das Raster ist nur hellgrau angedeutet.
 
 Aufruf:  python3 motiv_kaktus.py   →  kaktus.svg / .pdf / .png
 """
@@ -14,9 +13,9 @@ from faltmund import render, save, inside, ANLEITUNG_STANDARD
 N = 52                      # Kästchen je Blattkante (13 je Eckquadrat)
 C = 1.0 / N                 # Kästchengröße in Papier-Einheiten (≈ 3,7 mm bei 19 cm)
 
-CELL = 'fill="none" stroke="#000" stroke-width="0.22"'
-CELL_BLACK = 'fill="#111" stroke="#000" stroke-width="0.22"'
-LETTER = 'fill="#888"'
+CELL = 'fill="none" stroke="#b8b8b8" stroke-width="0.15"'
+CELL_BLACK = 'fill="#111" stroke="#111" stroke-width="0.15"'
+LETTER = 'fill="#9a9a9a"'
 
 
 def cell_center(i, j):
@@ -24,10 +23,10 @@ def cell_center(i, j):
 
 
 def pixel(pg, i, j, code):
-    """Ein Kästchen zeichnen. code: '.' = Zonenfarbe (leer), '#' = schwarz, sonst Buchstabe."""
+    """Ein Kästchen zeichnen. code: '#' = schwarz gefüllt, 'w' = weiß (leer), sonst Farbkürzel in Grau."""
     x, y = i * C, j * C
     pg.polyline([(x, y), (x + C, y), (x + C, y + C), (x, y + C)], CELL_BLACK if code == "#" else CELL, close=True)
-    if code not in (".", "#"):
+    if code not in ("w", "#"):
         cx, cy = cell_center(i, j)
         pg.text((cx, cy + 0.0035), code, size=2.1, style=LETTER, anchor="middle")
 
@@ -42,14 +41,14 @@ def raster(pg, poly, code_fn):
 
 # ---------------------------------------------------------------- Zonenmuster
 STACHELN = {(3, 3), (7, 1), (10, 5), (1, 8), (5, 7), (9, 9), (2, 11), (12, 9), (6, 12), (11, 2)}
-BLUME = {(11, 0): "r", (10, 1): "r", (12, 1): "r", (11, 2): "r", (11, 1): "."}       # [.P. / PBP / .P.] an der Schnauzenspitze
+BLUME = {(11, 0): "p", (10, 1): "p", (12, 1): "p", (11, 2): "p", (11, 1): "g"}       # [.P. / PBP / .P.] an der Schnauzenspitze
 AUGE = {(8, 3): "#", (9, 3): "w", (8, 4): "#", (9, 4): "#"}                            # 2×2 mit Glanzpunkt
 
 
 class Kaktus:
     titel = "Topfkaktus zum Ausmalen – Pixel"
     anleitung = ANLEITUNG_STANDARD + [
-        "Kästchen: obere Taschen grün, Topf braun, Mund rot. w = weiß lassen, r = rosa, h = hellblau, schwarz bleibt schwarz.",
+        "Farbkürzel in den Kästchen: g grün, b braun, r rot, p rosa, h hellblau. Leere Kästchen bleiben weiß, schwarze schwarz.",
         "Mund normal auf: Zunge. Mund seitlich auf: Pixelgebiss! Unter den Klappen: ein Schluck Wasser.",
     ]
 
@@ -65,12 +64,12 @@ class Kaktus:
             if oben:
                 if (x, y) in BLUME: return BLUME[(x, y)]
                 if (x, y) in AUGE: return AUGE[(x, y)]
-                return "#" if (x, y) in STACHELN else "."
+                return "#" if (x, y) in STACHELN else "g"
             # Topf: Rand als schwarze Reihe zur Lippe hin, darunter ein heller Streifen
             if y == 12: return "#"
             if y == 11: return "w"
             if y == 0 or x == 0: return "#"              # Topfboden / Außenkante
-            return "."
+            return "b"
         raster(pg, pk.poly, code)
 
     # --- Klappen: Kästchen in (s, d) = entlang der Lippe / Tiefe ins Dreieck (wie fl.L, ganzzahlig).
@@ -96,14 +95,14 @@ class Kaktus:
             for s in (0, 2, 4):                                                # hintere Reihe
                 for d in (6, 7): marken[(s, d)] = "w"
         elif fl.kiefer == "oben":                                            # Gaumen: Zäpfchen an der Naht
-            for c in an_der_naht(3, 2): marken[c] = "r"
+            for c in an_der_naht(3, 2): marken[c] = "p"
         else:                                                                # Zunge an der Naht
             for k, breite in ((2, 1), (3, 2), (4, 3), (5, 4), (6, 4), (7, 4), (8, 4), (9, 3), (10, 2), (11, 1)):
-                for c in an_der_naht(k, breite): marken[c] = "r"
+                for c in an_der_naht(k, breite): marken[c] = "p"
 
         def code(i, j):
             if rachen_nah(i, j): return "#"
-            return marken.get(sd(i, j), ".")
+            return marken.get(sd(i, j), "r")
         raster(pg, fl.poly, code)
 
     # --- unter den Klappen: Schluck Wasser (Futter des Kaktus)
