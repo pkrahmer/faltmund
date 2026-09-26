@@ -128,7 +128,8 @@ class Page:
     def text(self, c, s, size=3.6, style='fill="#000"', anchor="start", rot=0, mm=False):
         x, y = (c if mm else self.P(c))
         tr = f' transform="rotate({rot} {self.f(x)} {self.f(y)})"' if rot else ""
-        self.emit(f'<text x="{self.f(x)}" y="{self.f(y)}"{tr} font-family="Helvetica, Arial, sans-serif" '
+        font = '' if 'font-family' in style else 'font-family="Helvetica, Arial, sans-serif" '
+        self.emit(f'<text x="{self.f(x)}" y="{self.f(y)}"{tr} {font}'
                   f'font-size="{size}" text-anchor="{anchor}" {style}>{s}</text>')
 
     def group(self, clip_id=None, transform=None):
