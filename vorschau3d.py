@@ -56,33 +56,32 @@ def modell(oeffnung):
         return (sgn(p[0]), 0.0, 0.0) if normal else (0.0, -sgn(p[1]), 0.0)
 
     def T(a): return v_add(v_scale(a, 0.7), (0, 0, 0.6))
-    def Hf(a): return v_add(v_scale(a, 0.9), (0, 0, -1.4))
+    def Hf(a, b): return v_add(v_add(v_scale(a, 0.75), v_scale(b, 0.5)), (0, 0, -1.3))   # Papierecke, je Tasche seitlich
     def K(b): return b
-    def R(a, b): return v_add(v_add(v_scale(a, 0.55), v_scale(b, 0.75)), (0, 0, -0.5))
+    def R(a): return v_add(v_scale(a, 0.95), (0, 0, -0.45))                              # Kieferrücken, mittig
 
     faces = []
     for fl in lay.flaps:
         if fl.oeffnung != oeffnung:
             continue
         a, b = A(fl.spitze), B(fl.spitze)
-        t, h, k, r = T(a), Hf(a), K(b), R(a, b)
+        t, h, k, r = T(a), Hf(a, b), K(b), R(a)
         faces.append(([fl.winkel, fl.spitze, fl.rachen], [k, t, C], "innen"))
         pk = next(p for p in lay.pockets if p.spitze == fl.spitze)
         for name, hf in pk.halves.items():
             if hf.mitte == fl.winkel:                         # Hälfte an der Lippe dieser Klappe
                 faces.append(([hf.ecke, hf.mitte, hf.spitze], [h, k, t], "aussen"))
-            else:                                             # die andere Hälfte, zum seitlichen First
-                faces.append(([hf.ecke, hf.mitte, hf.spitze], [h, r, t], "aussen"))
-        faces.append((None, [h, r, k], "haut"))               # Seite zwischen First- und Lippenhälfte
-    # Rückseite je Kiefer und zwischen den Kiefern (nur von hinten sichtbar)
-    for sa in (-1, 1):
-        a = (0.0, sa, 0.0) if normal else (sa, 0.0, 0.0)
-        h = Hf(a)
-        r1, r2 = (R(a, (-1, 0, 0)), R(a, (1, 0, 0))) if normal else (R(a, (0, -1, 0)), R(a, (0, 1, 0)))
-        faces.append((None, [h, r1, r2], "haut"))
-    hN, hS = (Hf((0, 1, 0)), Hf((0, -1, 0))) if normal else (Hf((1, 0, 0)), Hf((-1, 0, 0)))
-    for k in ([(-1, 0, 0), (1, 0, 0)] if normal else [(0, -1, 0), (0, 1, 0)]):
-        faces.append((None, [hN, hS, k], "haut"))
+            else:                                             # die andere Hälfte: Kante auf dem Kieferrücken, mittig –
+                faces.append(([hf.ecke, hf.mitte, hf.spitze], [h, r, t], "aussen"))   # dort stößt die Nachbartasche an
+    # Rückseite: je Kiefer zwischen den beiden Papierecken, und zwischen den Kiefern
+    ax = [(0.0, 1.0, 0.0), (0.0, -1.0, 0.0)] if normal else [(1.0, 0.0, 0.0), (-1.0, 0.0, 0.0)]
+    bx = [(-1.0, 0.0, 0.0), (1.0, 0.0, 0.0)] if normal else [(0.0, -1.0, 0.0), (0.0, 1.0, 0.0)]
+    for a in ax:
+        faces.append((None, [Hf(a, bx[0]), R(a), Hf(a, bx[1])], "haut"))
+    for b in bx:
+        faces.append((None, [Hf(ax[0], b), K(b), Hf(ax[1], b)], "haut"))
+    faces.append((None, [Hf(ax[0], bx[0]), Hf(ax[0], bx[1]), Hf(ax[1], bx[1])], "haut"))
+    faces.append((None, [Hf(ax[0], bx[0]), Hf(ax[1], bx[1]), Hf(ax[1], bx[0])], "haut"))
     return faces
 
 
