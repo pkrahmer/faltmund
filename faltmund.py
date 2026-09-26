@@ -412,4 +412,4 @@ def save(svg, basename, motiv=None, clip=False):
         vorschau_alle(motiv).save(basename + "_3d.png")
         if clip:
             from vorschau3d import clip as _clip
-            _clip(motiv, basename + "_clip.gif")
+            _clip(motiv, basename + "_clip.mp4")

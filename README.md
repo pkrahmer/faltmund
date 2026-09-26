@@ -120,9 +120,13 @@ Taschen ist weicher –, aber welche Zone wo und in welcher Öffnung zu sehen is
 
 ### Clip
 
-`vorschau3d.clip(motiv, "name_clip.gif")` – oder `save(..., motiv=m, clip=True)` –
-macht ein animiertes GIF: zu → normal auf → zu → seitlich auf → zu, mit kurzer Pause
-in jedem Zustand. Die Zwischenbilder werden zwischen den Zuständen interpoliert;
-Klappen, die in einem Zustand versteckt sind, liegen dort als Fläche null auf ihrer
-Kante und klappen beim Öffnen heraus. Ablauf, Größe, Tempo: Parameter `ablauf`,
-`size`, `schritte`, `halten`, `ms`.
+`vorschau3d.clip(motiv, "name_clip.mp4")` – oder `save(..., motiv=m, clip=True)` –
+rendert ein MP4 (H.264, 720×720, 30 fps): zu → normal auf → zu → seitlich auf → zu.
+
+Dafür gibt es ein eigenes Papiernetz (`netz()`): die 25 Punkte des Viertelrasters
+und 32 Dreiecke, die das Knickmuster exakt zerlegen – jede Rasterzelle wird von
+genau einer Falzlinie geteilt. `lage(zustand)` legt fest, wo jeder Papierpunkt im
+Raum liegt; die Animation interpoliert nur Punkte. Weil alle Zustände dasselbe Netz
+benutzen, knickt das Papier nur an den Falzlinien und kann nicht aufreißen.
+Parameter: `ablauf`, `size`, `fps`, `sek_wechsel`, `sek_halten`.
+Braucht `imageio` und `imageio-ffmpeg`.

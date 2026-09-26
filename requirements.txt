@@ -1,3 +1,5 @@
 cairosvg
 pillow
 numpy
+imageio
+imageio-ffmpeg

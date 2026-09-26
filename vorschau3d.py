@@ -217,72 +217,92 @@ def vorschau_alle(motiv, size=800, ansichten=ANSICHTEN):
 vorschau_beide = vorschau_alle          # alter Name
 
 
-# ------------------------------------------------------------- Animation
-def _key(uv):
-    return tuple(sorted((round(u, 4), round(v, 4)) for u, v in uv))
+# ------------------------------------------------------------- Animation (ein Netz, knickt nur an Falzlinien)
+Q4 = [0.0, 0.25, 0.5, 0.75, 1.0]
 
 
-def _zustand(oeffnung):
-    """alle texturierten Flächen eines Zustands, auch die gerade versteckten Klappen.
-    Rückgabe {schlüssel: (uv, xyz, art)} – gleiche Schlüssel in jedem Zustand."""
-    lay = Layout()
-    faces = {}
-    fuell = []
-    vpos = {}                                             # Papierpunkt -> 3D-Position (aus den sichtbaren Flächen)
-    for uv, xyz, art in modell(oeffnung):
-        if uv is None:
-            fuell.append((uv, xyz, art)); continue
-        faces[_key(uv)] = (uv, xyz, art)
-        for p, q in zip(uv, xyz):
-            vpos.setdefault((round(p[0], 4), round(p[1], 4)), q)
-    # versteckte Klappen: zugeklappt nach innen – Mundwinkel und Spitze an ihrer Taschenkante,
-    # der Rachen etwas nach innen hinter die Kante gezogen
-    for fl in lay.flaps:
-        k = _key(fl.poly)
-        if k in faces: continue
-        w = vpos[(round(fl.winkel[0], 4), round(fl.winkel[1], 4))]
-        t = vpos[(round(fl.spitze[0], 4), round(fl.spitze[1], 4))]
-        r = v_scale(v_add(w, t), 0.5)                    # zugeklappt = Fläche null, liegt auf der Kante
-        faces[k] = (fl.poly, [w, t, r], "innen")
-    return faces, fuell
+def netz():
+    """Das Faltmuster als Dreiecksnetz: 25 Rasterpunkte, 32 Dreiecke. Jede Rasterzelle wird
+    von genau einer Falzlinie diagonal geteilt (Hauptdiagonalen oder Rautenlinie)."""
+    tris = []
+    for i in range(4):
+        for j in range(4):
+            p00, p10, p01, p11 = (Q4[i], Q4[j]), (Q4[i + 1], Q4[j]), (Q4[i], Q4[j + 1]), (Q4[i + 1], Q4[j + 1])
+            if i == j or abs(i - j) == 2:            # Falz x = y bzw. Rautenlinie parallel dazu
+                tris += [(p00, p10, p11), (p00, p11, p01)]
+            else:                                     # Falz x + y = 1 bzw. Rautenlinie parallel dazu
+                tris += [(p00, p10, p01), (p10, p11, p01)]
+    return tris
 
 
-def _mischen(z0, z1, t):
-    f0, _ = z0; f1, _ = z1
-    out = []
-    for k, (uv, xyz0, art) in f0.items():
-        xyz1 = f1[k][1]
-        out.append((uv, [tuple(a + (b - a) * t for a, b in zip(p0, p1)) for p0, p1 in zip(xyz0, xyz1)], art))
-    # Füllflächen: vom Zustand nehmen, der gerade näher ist (sie liegen hinten und verdecken nur Lücken)
-    out += (z0 if t < 0.5 else z1)[1]
-    if 0 < t < 1:                                       # Kern nur während des Umklappens, am größten in der Mitte
-        g = math.sin(math.pi * t)
-        out += [(None, [v_add(v_scale(v_sub(p, (0, 0, -0.45)), g), (0, 0, -0.45)) for p in tri], art) for _, tri, art in KERN]
-    return out
+def _art(p):
+    u, v = p
+    return ("ecke" if u in (0, 1) and v in (0, 1) else
+            "mitte" if (u in (0, 1) and v == 0.5) or (v in (0, 1) and u == 0.5) else
+            "kante" if u in (0, 1) or v in (0, 1) else
+            "spitze" if u in (0.25, 0.75) and v in (0.25, 0.75) else "innen")
 
 
-# dunkler Kern im Kopf: wo sich beim Umklappen kurz Lücken öffnen, sieht man ins Mundinnere statt durch den Kopf
-_kp = [(0.5, 0, -0.45), (-0.5, 0, -0.45), (0, 0.5, -0.45), (0, -0.5, -0.45), (0, 0, 0.05), (0, 0, -0.95)]
-KERN = [(None, [_kp[a], _kp[b], _kp[c]], "kern") for a, b, c in
-        ((0, 2, 4), (2, 1, 4), (1, 3, 4), (3, 0, 4), (0, 2, 5), (2, 1, 5), (1, 3, 5), (3, 0, 5))]
+def lage(oeffnung):
+    """3D-Lage jedes Rasterpunkts im Zustand – dieselben Regeln wie modell(), nur pro Punkt."""
+    pos = {}
+    for u in Q4:
+        for v in Q4:
+            p, k = (u, v), _art((u, v))
+            if oeffnung == "geschlossen":
+                if k == "ecke":   q = (sgn(u) * 0.62, -sgn(v) * 0.62, -0.75)
+                elif k == "spitze": q = (0.0, 0.0, 0.75)
+                elif k == "kante": q = (sgn(u) * 0.95, 0.0, -0.05) if u in (0, 1) else (0.0, -sgn(v) * 0.95, -0.05)
+                else:              q = (0.0, 0.0, -0.25)
+            else:
+                normal = oeffnung == "normal"
+                A = (0.0, -sgn(v), 0.0) if normal else (sgn(u), 0.0, 0.0)          # Kieferrichtung
+                B = (sgn(u), 0.0, 0.0) if normal else (0.0, -sgn(v), 0.0)          # Seite (Mundwinkel)
+                if k == "ecke":     q = v_add(v_add(v_scale(A, 0.75), v_scale(B, 0.5)), (0, 0, -1.3))
+                elif k == "spitze": q = v_add(v_scale(A, 0.7), (0, 0, 0.6))
+                elif k == "kante":
+                    an_seite = (u in (0, 1)) if normal else (v in (0, 1))           # Kante am Mundwinkel?
+                    q = B if an_seite else v_add(v_scale(A, 0.95), (0, 0, -0.45))   # Mundwinkel bzw. Kieferrücken
+                else:               q = (0.0, 0.0, -1.0)                             # Rachen: Mittelpunkte und Innenraster
+            pos[p] = q
+    return pos
+
+
+def _rueckseite():
+    """Füllflächen hinten (keine Papierflächen), ebenfalls über Rasterpunkte definiert"""
+    f = []
+    for cu, cv in ((0, 0), (1, 0), (0, 1), (1, 1)):
+        ku = (0.25 if cu == 0 else 0.75, cv); kv = (cu, 0.25 if cv == 0 else 0.75)
+        f.append(((cu, cv), ku, kv))
+    f += [((0, 0), (1, 0), (1, 1)), ((0, 0), (1, 1), (0, 1))]
+    return f
+
+
+def netz_flaechen(oeffnung_a, oeffnung_b=None, t=0.0):
+    """Flächen für vorschau(faces=…): das Papiernetz zwischen zwei Zuständen interpoliert"""
+    pa = lage(oeffnung_a); pb = lage(oeffnung_b or oeffnung_a)
+    P = {k: tuple(x + (y - x) * t for x, y in zip(pa[k], pb[k])) for k in pa}
+    faces = [(list(tri), [P[p] for p in tri], "innen") for tri in netz()]
+    faces += [(None, [P[p] for p in tri], "haut") for tri in _rueckseite()]
+    return faces
 
 
 def clip(motiv, pfad, ablauf=("geschlossen", "normal", "geschlossen", "seitlich", "geschlossen"),
-         size=480, schritte=14, halten=8, ms=55, yaw=-16.0, pitch=26.0):
-    """kurzer Clip als animiertes GIF: Übergänge zwischen den Zuständen in `ablauf`,
-    mit Pause in jedem Zustand. Standard: zu, normal auf, zu, seitlich auf, zu."""
+         size=720, fps=30, sek_wechsel=0.9, sek_halten=0.7, yaw=-16.0, pitch=26.0):
+    """kurzer Clip als MP4 (H.264): zu, normal auf, zu, seitlich auf, zu – das Papier knickt nur
+    an den Falzlinien, weil alle Zustände dasselbe Netz mit denselben Punkten benutzen."""
+    import numpy as np, imageio
     tex = textur(motiv)
-    zust = {oe: _zustand(oe) for oe in set(ablauf)}
-    frames = []
-    def bild(faces):
-        return vorschau(motiv, size=size, tex=tex, yaw=yaw, pitch=pitch, faces=faces).convert("P", palette=Image.ADAPTIVE, colors=128)
-    for a, b in zip(ablauf, ablauf[1:]):
-        halt = bild(_mischen(zust[a], zust[a], 0.0))
-        frames += [halt] * halten
-        for i in range(1, schritte + 1):
-            t = i / schritte
-            t = t * t * (3 - 2 * t)                          # sanft an- und auslaufen
-            frames.append(bild(_mischen(zust[a], zust[b], t)))
-    frames += [bild(_mischen(zust[ablauf[-1]], zust[ablauf[-1]], 0.0))] * halten
-    frames[0].save(pfad, save_all=True, append_images=frames[1:], duration=ms, loop=0, disposal=2)
+    n_w, n_h = max(1, round(sek_wechsel * fps)), max(1, round(sek_halten * fps))
+    with imageio.get_writer(pfad, fps=fps, codec="libx264", quality=8, macro_block_size=8) as w:
+        def bild(a, b, t):
+            w.append_data(np.asarray(vorschau(motiv, size=size, tex=tex, yaw=yaw, pitch=pitch, faces=netz_flaechen(a, b, t))))
+        for a, b in zip(ablauf, ablauf[1:]):
+            still = np.asarray(vorschau(motiv, size=size, tex=tex, yaw=yaw, pitch=pitch, faces=netz_flaechen(a)))
+            for _ in range(n_h): w.append_data(still)
+            for i in range(1, n_w + 1):
+                t = i / n_w
+                bild(a, b, t * t * (3 - 2 * t))
+        still = np.asarray(vorschau(motiv, size=size, tex=tex, yaw=yaw, pitch=pitch, faces=netz_flaechen(ablauf[-1])))
+        for _ in range(n_h): w.append_data(still)
     return pfad
