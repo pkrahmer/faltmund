@@ -335,7 +335,10 @@ if __name__ == "__main__":
         t = time.time(); render(i, os.path.join(HIER, f"probe_{i:03d}.png"), s); print("Sekunden:", round(time.time() - t))
     else:
         os.makedirs(os.path.join(HIER, "frames"), exist_ok=True)
+        budget = float(sys.argv[2]) if len(sys.argv) > 2 else 1e9          # Sekunden; danach sauber aufhören
+        start = time.time()
         for i in range(len(FRAMES)):
+            if time.time() - start > budget: break
             p = os.path.join(HIER, "frames", f"{i:04d}.png")
             if os.path.exists(p): continue
             t = time.time(); render(i, p); print(i, "fertig in", round(time.time() - t), "s", flush=True)
