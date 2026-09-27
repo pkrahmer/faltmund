@@ -4,3 +4,4 @@ frosch_buntstift.png
 frosch_hoehe.png
 render.log
 *.mp4
+.venv/
