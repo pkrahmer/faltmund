@@ -189,11 +189,35 @@ def buntstift(name, farbe, laenge, loc, rot_z, seed):
     return schaft
 
 
+def _geraet():
+    """OptiX (NVIDIA RTX) > CUDA > CPU; mit GERAET=CPU erzwingbar"""
+    if os.environ.get("GERAET", "").upper() == "CPU":
+        return "CPU"
+    prefs = bpy.context.preferences.addons["cycles"].preferences
+    for typ in ("OPTIX", "CUDA", "HIP", "METAL", "ONEAPI"):
+        try:
+            prefs.compute_device_type = typ
+            prefs.get_devices()
+            gpus = [d for d in prefs.devices if d.type == typ]
+            if gpus:
+                for d in prefs.devices:
+                    d.use = d.type == typ                      # nur GPU, CPU nicht mitrechnen lassen
+                print("Rendere auf", typ, ":", ", ".join(d.name for d in gpus), flush=True)
+                return "GPU"
+        except Exception:
+            pass
+    print("Keine GPU gefunden – rendere auf der CPU", flush=True)
+    return "CPU"
+
+
 def baue_szene(farbbild, hoehenbild):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
-    sc.render.engine = "CYCLES"; sc.cycles.device = "CPU"
-    sc.cycles.samples = 40; sc.cycles.adaptive_threshold = 0.03
+    sc.render.engine = "CYCLES"
+    sc.cycles.device = _geraet()
+    # GPU: volle Qualität; CPU: 40 Samples, damit ein Clip in eine Nacht passt
+    sc.cycles.samples = int(os.environ.get("SAMPLES", 256 if sc.cycles.device == "GPU" else 40))
+    sc.cycles.adaptive_threshold = 0.01 if sc.cycles.device == "GPU" else 0.03
     sc.cycles.use_denoising = True; sc.cycles.denoiser = "OPENIMAGEDENOISE"
     sc.cycles.max_bounces = 6; sc.cycles.diffuse_bounces = 3; sc.cycles.glossy_bounces = 3
     sc.cycles.transmission_bounces = 4; sc.cycles.caustics_reflective = False; sc.cycles.caustics_refractive = False

@@ -6,6 +6,8 @@ python3 faltung.py            # Faltbewegung lösen → ablauf.npy
 python3 buntstift.py          # Buntstiftbemalung + Höhenkarte aus dem Frosch-Motiv
 python3 szene.py test 150     # Probebild
 python3 szene.py alle         # alle Bilder nach frames/ (setzt fort)
+                              # nutzt automatisch OptiX/CUDA, sonst CPU;
+                              # GERAET=CPU oder SAMPLES=… zum Übersteuern
 python3 nachbearbeitung.py    # Filmlook + MP4
 ```
 
